@@ -78,7 +78,9 @@ def get_oil_price(type="wti"):
         response = requests.get(url)
         data = response.json()
         if "data" in data and len(data["data"]) > 0:
-            return {"price": float(data["data"][0]["value"]), "change": float(data["data"][0]["value"]) - float(data["data"][1]["value"])}
+            val_today = float(data["data"][0]["value"])
+val_yesterday = float(data["data"][1]["value"])
+return {"price": val_today, "change": round(val_today - val_yesterday, 2)}
     except: return None
     return None
 
