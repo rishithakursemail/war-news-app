@@ -29,7 +29,7 @@ st.markdown("""
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         text-align: center;
-        margin-bottom: 0px;
+        margin-bottom: 10px;
     }
 
     .oil-card {
@@ -77,17 +77,19 @@ def get_oil_price(type="wti"):
     try:
         response = requests.get(url)
         data = response.json()
-        if "data" in data and len(data["data"]) > 0:
+        if "data" in data and len(data["data"]) > 1:
             val_today = float(data["data"][0]["value"])
-val_yesterday = float(data["data"][1]["value"])
-return {"price": val_today, "change": round(val_today - val_yesterday, 2)}
+            val_yesterday = float(data["data"][1]["value"])
+            # दशमलव के बाद केवल 2 अंक रखने के लिए round() का उपयोग
+            change = round(val_today - val_yesterday, 2)
+            return {"price": round(val_today, 2), "change": change}
     except: return None
     return None
 
 def fetch_war_news():
-    url = f"https://newsapi.org/v2/everything?q=(Iran AND USA AND War) OR (Hormuz Strait)&sortBy=publishedAt&language=hi&apiKey={NEWS_API_KEY}"
+    url = f"https://newsapi.org/v2/everything?q=(Iran AND USA AND War) OR (Hormuz Strait) OR (Crude Oil)&sortBy=publishedAt&language=hi&apiKey={NEWS_API_KEY}"
     try:
-        return requests.get(url).json().get("articles", [])[:8]
+        return requests.get(url).json().get("articles", [])[:10]
     except: return []
 
 # --- UI CONTENT ---
@@ -111,7 +113,8 @@ with c1:
         </div>
         """, unsafe_allow_html=True)
 
-time.sleep(1)
+time.sleep(1) # API Rate limit से बचने के लिए
+
 brent = get_oil_price("brent")
 with c2:
     if brent:
@@ -137,15 +140,19 @@ if news:
         <div class="news-box">
             <h4 style='margin-bottom:5px; color:#fff;'>{art['title']}</h4>
             <p style='font-size:0.85rem; color:#ff416c;'>{art['source']['name']} • {art['publishedAt'][:10]}</p>
-            <p style='font-size:0.95rem; color:#ccc;'>{art['description'][:200] if art['description'] else 'खबर का विवरण देखने के लिए नीचे क्लिक करें...'}</p>
+            <p style='font-size:0.95rem; color:#ccc;'>{art['description'][:250] if art['description'] else 'खबर का विवरण देखने के लिए नीचे क्लिक करें...'}</p>
             <a href="{art['url']}" target="_blank" style='color:#00ff88; text-decoration:none; font-weight:bold;'>पूरा पढ़ें ↗</a>
         </div>
         """, unsafe_allow_html=True)
+else:
+    st.info("वर्तमान में कोई नई खबर उपलब्ध नहीं है। कृपया रिफ्रेश करें।")
 
 # Sidebar for controls
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/2534/2534354.png", width=100)
     st.title("कंट्रोल पैनल")
     if st.button('🔄 डेटा रिफ्रेश करें'):
         st.rerun()
-    st.info("यह ऐप 1 अप्रैल 2026 के लाइव डेटा फीड का उपयोग कर रही है।")
+    st.markdown("---")
+    st.write("**बाज़ार की स्थिति:**")
+    st.write("ईरान-अमेरिका तनाव के कारण तेल की कीमतों में अस्थिरता बनी हुई है।")
+    st.info(f"अंतिम अपडेट: {datetime.now().strftime('%H:%M:%S')}")
