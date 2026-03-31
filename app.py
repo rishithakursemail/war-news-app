@@ -102,9 +102,6 @@ with st.sidebar:
     st.info("News: Auto-refresh every 5 mins")
     st.info("Oil: 10 min data caching")
     if st.button("Manual Force Refresh"):
-    st.cache_data.clear()
-    st.rerun()
+        st.cache_data.clear()
+        st.rerun()
     st.write(f"Last Sync: {datetime.now().strftime('%H:%M:%S')}")
-    st.rerun()
-    st.markdown("---")
-    st.info(f"Last Synced: {datetime.now().strftime('%H:%M:%S')}")
