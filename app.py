@@ -2,83 +2,148 @@ import streamlit as st
 import requests
 import pandas as pd
 from datetime import datetime
+import time
 
 # --- CONFIGURATION ---
 NEWS_API_KEY = "be07c5b9437448cbb365fcd80b336f01"
 OIL_API_KEY = "WEJSMD3L9T43WZOB"
 
-st.set_page_config(page_title="Iran-US War & Oil Tracker", layout="wide", page_icon="🚀")
+st.set_page_config(page_title="War & Oil Sentinel", layout="wide", page_icon="⚡")
 
-# --- CSS FOR STYLING ---
+# --- ADVANCED CSS FOR PREMIUM LOOK ---
 st.markdown("""
     <style>
-    .main { background-color: #0e1117; color: white; }
-    .stMetric { background-color: #1e2130; padding: 15px; border-radius: 10px; border: 1px solid #333; }
-    .news-card { padding: 20px; border-radius: 10px; border-left: 5px solid #ff4b4b; background: #262730; margin-bottom: 15px; }
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;400;600&display=swap');
+    
+    .stApp {
+        background: radial-gradient(circle at top right, #1a1c2c, #0a0b10);
+        color: #e0e0e0;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    .main-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 3rem;
+        font-weight: 700;
+        background: linear-gradient(90deg, #ff4b2b, #ff416c);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-align: center;
+        margin-bottom: 0px;
+    }
+
+    .oil-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 25px;
+        text-align: center;
+        transition: transform 0.3s ease;
+    }
+    
+    .oil-card:hover {
+        transform: translateY(-5px);
+        border-color: #ff4b2b;
+    }
+
+    .news-box {
+        background: rgba(30, 31, 48, 0.7);
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-left: 5px solid #ff416c;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    
+    .price-up { color: #00ff88; text-shadow: 0 0 10px #00ff88; font-weight: bold; font-size: 1.5rem; }
+    .price-down { color: #ff3333; text-shadow: 0 0 10px #ff3333; font-weight: bold; font-size: 1.5rem; }
+    
+    .stButton>button {
+        width: 100%;
+        border-radius: 50px;
+        background: linear-gradient(45deg, #ff416c, #ff4b2b);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        font-weight: bold;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# --- FUNCTIONS ---
-def get_oil_data(symbol="WTI"):
-    # Alpha Vantage API call for Crude Oil
-    url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={OIL_API_KEY}"
+# --- LOGIC ---
+def get_oil_price(type="wti"):
+    url = f"https://www.alphavantage.co/query?function={type.upper()}&interval=daily&apikey={OIL_API_KEY}"
     try:
-        r = requests.get(url)
-        data = r.json()["Global Quote"]
-        return data
-    except:
-        return None
+        response = requests.get(url)
+        data = response.json()
+        if "data" in data and len(data["data"]) > 0:
+            return {"price": float(data["data"][0]["value"]), "change": float(data["data"][0]["value"]) - float(data["data"][1]["value"])}
+    except: return None
+    return None
 
 def fetch_war_news():
-    # NewsAPI call for Iran-US Conflict
-    url = f"https://newsapi.org/v2/everything?q=Iran+USA+War+OR+Hormuz&sortBy=publishedAt&language=hi&apiKey={NEWS_API_KEY}"
+    url = f"https://newsapi.org/v2/everything?q=(Iran AND USA AND War) OR (Hormuz Strait)&sortBy=publishedAt&language=hi&apiKey={NEWS_API_KEY}"
     try:
-        r = requests.get(url)
-        return r.json()["articles"][:10] # Top 10 news
-    except:
-        return []
+        return requests.get(url).json().get("articles", [])[:8]
+    except: return []
 
-# --- UI LAYOUT ---
-st.title("🛡️ ईरान-अमेरिका युद्ध एवं क्रूड ऑयल लाइव न्यूज़फीड")
-st.write(f"अंतिम अपडेट: {datetime.now().strftime('%d %B, %Y | %H:%M')}")
+# --- UI CONTENT ---
+st.markdown("<h1 class='main-title'>WAR & OIL SENTINEL</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center; color:#888;'>ईरान-अमेरिका संघर्ष एवं वैश्विक ऊर्जा बाजार की लाइव ट्रैकिंग</p>", unsafe_allow_html=True)
 
-# --- OIL PRICE SECTION ---
-st.header("🛢️ वैश्विक क्रूड ऑयल मार्केट")
-col1, col2 = st.columns(2)
+# Oil Prices Row
+st.markdown("### 🛢️ लाइव क्रूड ऑयल टिकर")
+c1, c2 = st.columns(2)
 
-wti_data = get_oil_data("WTI")
-if wti_data:
-    col1.metric("WTI Crude", f"${wti_data['05. price']}", wti_data['09. change'])
-else:
-    col1.warning("WTI डेटा लोड नहीं हो सका")
+wti = get_oil_price("wti")
+with c1:
+    if wti:
+        color_class = "price-up" if wti['change'] >= 0 else "price-down"
+        arrow = "▲" if wti['change'] >= 0 else "▼"
+        st.markdown(f"""
+        <div class="oil-card">
+            <p style='color:#aaa; font-size:0.9rem;'>WTI CRUDE (OIL)</p>
+            <h2 style='margin:0;'>${wti['price']}</h2>
+            <p class="{color_class}">{arrow} {abs(wti['change'])} USD</p>
+        </div>
+        """, unsafe_allow_html=True)
 
-# Brent के लिए सिंबल आमतौर पर 'BRENT' होता है Alpha Vantage में
-brent_data = get_oil_data("BRENT")
-if brent_data:
-    col2.metric("Brent Crude", f"${brent_data['05. price']}", brent_data['09. change'])
-else:
-    col2.info("Brent डेटा उपलब्ध हो रहा है...")
+time.sleep(1)
+brent = get_oil_price("brent")
+with c2:
+    if brent:
+        color_class = "price-up" if brent['change'] >= 0 else "price-down"
+        arrow = "▲" if brent['change'] >= 0 else "▼"
+        st.markdown(f"""
+        <div class="oil-card">
+            <p style='color:#aaa; font-size:0.9rem;'>BRENT CRUDE (OIL)</p>
+            <h2 style='margin:0;'>${brent['price']}</h2>
+            <p class="{color_class}">{arrow} {abs(brent['change'])} USD</p>
+        </div>
+        """, unsafe_allow_html=True)
 
 st.markdown("---")
 
-# --- NEWS SECTION ---
-st.header("📰 ताज़ा न्यूज़ अलर्ट (War Updates)")
-news_articles = fetch_war_news()
+# News Section
+st.markdown("### 📰 युद्ध एवं भू-राजनीतिक अपडेट")
+news = fetch_war_news()
 
-if not news_articles:
-    st.write("वर्तमान में कोई ताज़ा न्यूज़ नहीं मिली। कृपया कुछ देर बाद प्रयास करें।")
-else:
-    for art in news_articles:
-        with st.container():
-            st.markdown(f"""
-                <div class="news-card">
-                    <h3>{art['title']}</h3>
-                    <p style="color: #aaa;">स्रोत: {art['source']['name']} | समय: {art['publishedAt'][:10]}</p>
-                    <p>{art['description'] if art['description'] else 'विवरण उपलब्ध नहीं है'}</p>
-                    <a href="{art['url']}" target="_blank">पूरा पढ़ें ↗️</a>
-                </div>
-            """, unsafe_allow_html=True)
+if news:
+    for art in news:
+        st.markdown(f"""
+        <div class="news-box">
+            <h4 style='margin-bottom:5px; color:#fff;'>{art['title']}</h4>
+            <p style='font-size:0.85rem; color:#ff416c;'>{art['source']['name']} • {art['publishedAt'][:10]}</p>
+            <p style='font-size:0.95rem; color:#ccc;'>{art['description'][:200] if art['description'] else 'खबर का विवरण देखने के लिए नीचे क्लिक करें...'}</p>
+            <a href="{art['url']}" target="_blank" style='color:#00ff88; text-decoration:none; font-weight:bold;'>पूरा पढ़ें ↗</a>
+        </div>
+        """, unsafe_allow_html=True)
 
-# --- REFRESH BUTTON ---
-if st.button('🔄 डेटा रिफ्रेश करें'):
-    st.rerun()
+# Sidebar for controls
+with st.sidebar:
+    st.image("https://cdn-icons-png.flaticon.com/512/2534/2534354.png", width=100)
+    st.title("कंट्रोल पैनल")
+    if st.button('🔄 डेटा रिफ्रेश करें'):
+        st.rerun()
+    st.info("यह ऐप 1 अप्रैल 2026 के लाइव डेटा फीड का उपयोग कर रही है।")
