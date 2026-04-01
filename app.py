@@ -5,8 +5,8 @@ from datetime import datetime
 from streamlit_autorefresh import st_autorefresh
 
 # --- CONFIGURATION ---
-NEWS_API_KEY = "be07c5b9437448cbb365fcd80b336f01"
-OIL_API_KEY = "WEJSMD3L9T43WZOB"
+NEWS_API_KEY = "d794da4aaff244d29f314e9728b4aed0 #"be07c5b9437448cbb365fcd80b336f01"
+OIL_API_KEY = "0UVKFY63ZM2ZWTSK"   #"WEJSMD3L9T43WZOB"
 
 st.set_page_config(page_title="War & Oil Sentinel Pro", layout="wide", page_icon="📡")
 
